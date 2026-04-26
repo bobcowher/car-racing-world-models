@@ -145,7 +145,7 @@ class WorldModel(BaseModel):
 
         # Predict reward and done
         embed_action = torch.cat([embed, action_onehot], dim=-1)
-        reward = torch.tanh(self.reward_pred(embed_action))
+        reward = self.reward_pred(embed_action)
         done = torch.sigmoid(self.done_pred(embed_action))
 
         return next_embed, reward, done
@@ -196,8 +196,7 @@ class WorldModel(BaseModel):
         dynamics_loss = F.mse_loss(next_embed_pred, next_embed_target.detach())
 
         # === 3. Reward Loss ===
-        # Reward is in range [-1, 0, 1] after life penalty
-        reward_loss = F.mse_loss(reward_pred.squeeze(-1), rewards.float())
+        reward_loss = F.mse_loss(reward_pred.squeeze(-1), rewards.float() / 100.0)
 
         # === 4. Done Loss ===
         # Binary classification
@@ -254,7 +253,7 @@ class WorldModel(BaseModel):
 
         # Predict reward from current state + action
         embed_action = torch.cat([embed, action_onehot], dim=-1)
-        reward_pred = torch.tanh(self.reward_pred(embed_action))  # (B, 1) in [-1, 1]
+        reward_pred = self.reward_pred(embed_action)
 
         # Predict done from current state + action
         done_pred = torch.sigmoid(self.done_pred(embed_action))  # (B, 1) in [0, 1]
