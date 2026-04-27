@@ -5,6 +5,7 @@ import torch.nn.functional as F
 from models.encoder import Encoder, Decoder
 from models.base import BaseModel
 from models.dynamics_model import DynamicsModel
+from models.ssim_loss import ssim_loss
 
 
 class WorldModel(BaseModel):
@@ -153,7 +154,7 @@ class WorldModel(BaseModel):
         recon, embeds, next_embed_pred, reward_pred, done_pred = self.forward(obs_normalized, action_onehot)
 
         # === 1. Reconstruction Loss ===
-        recon_loss = F.l1_loss(recon, obs_normalized)
+        recon_loss = F.l1_loss(recon, obs_normalized) + 0.2 * ssim_loss(recon, obs_normalized)
 
         # === 2. Dynamics Loss ===
         # Encode next observation to get target embedding
