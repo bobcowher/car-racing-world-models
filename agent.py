@@ -380,7 +380,6 @@ class Agent:
 
         writer = SummaryWriter(summary_writer_name)
 
-        real_sampler = MixedSampler(self, real_ratio=1.0)
         mixed_sampler = MixedSampler(self, real_ratio=real_ratio)
 
         for episode in range(episodes):
@@ -449,10 +448,8 @@ class Agent:
                     total_dynamics_loss += dynamics_loss
                     wm_updates += 1
 
-                # Q-model updates: real data only before ep 200, mixed after
-                active_sampler = real_sampler if episode < 200 else mixed_sampler
                 for _ in range(current_ratio[1]):
-                    q_loss, imag_reward = self.train_q_model_on_mixed(active_sampler, rollout_steps, batch_size, epochs=1)
+                    q_loss, imag_reward = self.train_q_model_on_mixed(mixed_sampler, rollout_steps, batch_size, epochs=1)
                     total_q_loss += q_loss
                     total_imag_reward += imag_reward
                     q_updates += 1
