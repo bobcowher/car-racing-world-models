@@ -183,7 +183,8 @@ class WorldModel(BaseModel):
         embed = embeds_flat  # (B, embed_dim)
 
         # Predict next embedding using dynamics model and normalize it
-        next_embed_pred = self.dynamics(embed, action_onehot)  # (B, embed_dim)
+        # Detach embed so dynamics loss does not backprop into the encoder
+        next_embed_pred = self.dynamics(embed.detach(), action_onehot)  # (B, embed_dim)
         next_embed_pred = self.normalize_embedding(next_embed_pred)
 
         # Predict reward from current state + action
