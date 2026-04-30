@@ -17,9 +17,9 @@ def get_wm_q_ratio(episode):
     Keeps world model training strong throughout to track evolving data distribution.
     Never drops below 400 WM updates/episode to prevent WM degradation.
     """
-    if episode < 200:
+    if episode < 100:
         return [4, 1]   # WM-heavy
-    elif episode < 400:
+    elif episode < 200:
         return [2, 2]   # Balanced
     else:
         return [2, 3]   # Q-focused
@@ -424,7 +424,7 @@ class Agent:
             print(f"Episode {episode} | reward: {episode_reward:.1f} | epsilon: {self.epsilon:.3f} | steps: {episode_steps}")
 
             # Adaptive real_ratio: start at 1.0 (pure real data), decay to floor by ep 400
-            current_real_ratio = max(real_ratio, 1.0 - episode / 400.0)
+            current_real_ratio = max(real_ratio, 1.0 - episode / 800.0)
             mixed_sampler.real_ratio = current_real_ratio
 
             # Interleaved training with dynamic wm_q_ratio
