@@ -429,7 +429,7 @@ class Agent:
             current_real_ratio = max(real_ratio, 1.0 - episode / 800.0)
             mixed_sampler.real_ratio = current_real_ratio
 
-            current_ratio = [4, 0] if episode < wm_warmup_episodes else [2, 2]
+            current_ratio = [4, 1] if episode < wm_warmup_episodes else [2, 2]
 
             total_combined_loss = 0.0
             total_reward_loss = 0.0
