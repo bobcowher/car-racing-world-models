@@ -371,7 +371,7 @@ class Agent:
         rollout_steps = imagination_steps if imagination_steps is not None else batch_size
 
         wm_warmup_episodes = 100
-        run_tag = f'world_model_wm_warmup{wm_warmup_episodes}ep'
+        run_tag = f'world_model_wm_warmup{wm_warmup_episodes}ep_biased_explore'
         summary_writer_name = f'runs/{datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}_{run_tag}'
 
         writer = SummaryWriter(summary_writer_name)
@@ -393,7 +393,7 @@ class Agent:
             while not done:
 
                 if random.random() < self.epsilon:
-                    action = self.env.action_space.sample()
+                    action = random.choices([0, 1, 2, 3, 4], weights=[0.05, 0.20, 0.20, 0.50, 0.05])[0]
                 else:
                     # Encode observation to latent space before Q-model
                     with torch.no_grad():
