@@ -370,7 +370,8 @@ class Agent:
 
         rollout_steps = imagination_steps if imagination_steps is not None else batch_size
 
-        run_tag = f'world_model_ote{offline_training_epochs}_bs{batch_size}_wmbs{wm_batch_size}_rollout{rollout_steps}_buf{self.memory.mem_size}'
+        wm_warmup_episodes = 100
+        run_tag = f'world_model_wm_warmup{wm_warmup_episodes}ep'
         summary_writer_name = f'runs/{datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}_{run_tag}'
 
         writer = SummaryWriter(summary_writer_name)
@@ -428,7 +429,7 @@ class Agent:
             current_real_ratio = max(real_ratio, 1.0 - episode / 800.0)
             mixed_sampler.real_ratio = current_real_ratio
 
-            current_ratio = [2, 2]
+            current_ratio = [4, 0] if episode < wm_warmup_episodes else [2, 2]
 
             total_combined_loss = 0.0
             total_reward_loss = 0.0
