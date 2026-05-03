@@ -370,7 +370,7 @@ class Agent:
 
         rollout_steps = imagination_steps if imagination_steps is not None else batch_size
 
-        run_tag = f'world_model_raw_reward_scale'
+        run_tag = f'world_model_delayed_imagination200'
         summary_writer_name = f'runs/{datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}_{run_tag}'
 
         writer = SummaryWriter(summary_writer_name)
@@ -424,8 +424,8 @@ class Agent:
                 best_score = episode_reward
                 self.save_best(best_score, episode)
 
-            # Adaptive real_ratio: start at 1.0 (pure real data), decay to floor by ep 400
-            current_real_ratio = max(real_ratio, 1.0 - episode / 800.0)
+            # Adaptive real_ratio: hold at 1.0 until ep 200, then decay to floor by ep 600
+            current_real_ratio = max(real_ratio, 1.0 - max(0, episode - 200) / 800.0)
             mixed_sampler.real_ratio = current_real_ratio
 
             current_ratio = [2, 2]
