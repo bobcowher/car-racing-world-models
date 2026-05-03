@@ -71,6 +71,7 @@ class Agent:
 
         self.q_model = QModel(action_dim=self.env.action_space.n, hidden_dim=256, embed_dim=self.world_model.embed_dim).to(self.device)
         self.target_q_model = QModel(action_dim=self.env.action_space.n, hidden_dim=256, embed_dim=self.world_model.embed_dim).to(self.device)
+        self.target_q_model.load_state_dict(self.q_model.state_dict())
 
         self.q_model_optimizer = torch.optim.Adam(self.q_model.parameters(), lr=0.0001)
 
@@ -370,7 +371,7 @@ class Agent:
 
         rollout_steps = imagination_steps if imagination_steps is not None else batch_size
 
-        run_tag = f'world_model_biased_explore'
+        run_tag = f'world_model_target_init_fix'
         summary_writer_name = f'runs/{datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}_{run_tag}'
 
         writer = SummaryWriter(summary_writer_name)
