@@ -142,7 +142,8 @@ class Agent:
                 q_vals = self.q_model(current_embeds) # (batch_size, n_actions)
                 best_actions = q_vals.argmax(dim=1)   # (batch_size,)
                 
-                random_actions = torch.randint(0, self.env.action_space.n, (batch_size,), device=self.device)
+                explore_weights = torch.tensor([0.05, 0.20, 0.20, 0.50, 0.05], device=self.device)
+                random_actions = torch.multinomial(explore_weights.expand(batch_size, -1), num_samples=1).squeeze(1)
                 exploring_mask = (torch.rand(batch_size, device=self.device) < self.imagine_epsilon).long()
                 action_idx = exploring_mask * random_actions + (1 - exploring_mask) * best_actions
 
@@ -370,7 +371,7 @@ class Agent:
 
         rollout_steps = imagination_steps if imagination_steps is not None else batch_size
 
-        run_tag = f'world_model_raw_reward_scale'
+        run_tag = f'world_model_imagine_bias'
         summary_writer_name = f'runs/{datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}_{run_tag}'
 
         writer = SummaryWriter(summary_writer_name)
