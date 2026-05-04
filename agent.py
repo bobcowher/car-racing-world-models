@@ -29,8 +29,7 @@ class MixedSampler:
 
     def _sample_real(self, batch_size, horizon):
         agent = self.agent
-        # Sample batch_size*horizon to match imagined output size
-        obs, actions, rewards, next_obs, dones = agent.memory.sample_buffer(batch_size * horizon)
+        obs, actions, rewards, next_obs, dones = agent.memory.sample_buffer(batch_size)
         with torch.no_grad():
             states      = agent.world_model.encode(agent.normalize_observation(obs)).squeeze(1)
             next_states = agent.world_model.encode(agent.normalize_observation(next_obs)).squeeze(1)
@@ -38,7 +37,9 @@ class MixedSampler:
         return states, actions, rewards, next_states, dones
 
     def _sample_imagined(self, batch_size, horizon):
-        return self.agent.imagine_trajectory(batch_size, horizon)
+        # Use batch_size // horizon seeds so total transitions = batch_size
+        seeds = max(1, batch_size // horizon)
+        return self.agent.imagine_trajectory(seeds, horizon)
 
 
 class Agent:
@@ -370,7 +371,7 @@ class Agent:
 
         rollout_steps = imagination_steps if imagination_steps is not None else batch_size
 
-        run_tag = f'world_model_raw_reward_scale'
+        run_tag = f'world_model_unified_batch_64'
         summary_writer_name = f'runs/{datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}_{run_tag}'
 
         writer = SummaryWriter(summary_writer_name)
