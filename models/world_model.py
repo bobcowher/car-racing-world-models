@@ -1,4 +1,3 @@
-from numpy import int32, rec
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -18,7 +17,7 @@ def gradient_loss(pred, target):
 
 class WorldModel(BaseModel):
 
-    def __init__(self, observation_shape=(), embed_dim=1024, action_dim=128, n_actions=4, feature_dim=None):
+    def __init__(self, observation_shape=(), embed_dim=1024, n_actions=4, feature_dim=None):
         super().__init__()
 
         if feature_dim is None:
@@ -116,11 +115,10 @@ class WorldModel(BaseModel):
             next_obs_normalized = next_obs_normalized.squeeze(1)
 
         # Convert actions to one-hot
-        batch_size = obs.shape[0]
         action_onehot = F.one_hot(actions.long(), num_classes=self.n_actions).float()
 
         # Forward pass
-        recon, embeds, next_embed_pred, reward_pred, done_pred = self.forward(obs_normalized, action_onehot)
+        recon, _, next_embed_pred, reward_pred, done_pred = self.forward(obs_normalized, action_onehot)
 
         # === 1. Reconstruction Loss ===
         recon_loss = F.l1_loss(recon, obs_normalized) + 0.2 * ssim_loss(recon, obs_normalized) + 0.1 * gradient_loss(recon, obs_normalized)

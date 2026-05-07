@@ -1,11 +1,8 @@
 import torch
-import numpy as np
 import os
 
-from torch._C import device
-
 class ReplayBuffer:
-    def __init__(self, max_size, input_shape, n_actions,
+    def __init__(self, max_size, input_shape,
                  input_device, output_device='cpu'):
         self.mem_size = max_size
         self.mem_ctr  = 0
@@ -38,13 +35,9 @@ class ReplayBuffer:
         self.terminal_memory = torch.zeros(max_size, dtype=torch.bool,
                                            device=self.input_device)
 
-    # ------------------------------------------------------------------ #
-
     def can_sample(self, batch_size: int) -> bool:
-        """Require at least 5×batch_size transitions before sampling."""
+        """Require at least 10×batch_size transitions before sampling."""
         return self.mem_ctr >= batch_size * 10
-
-    # ------------------------------------------------------------------ #
 
     def store_transition(self, state, action, reward, next_state, done):
         """Write a transition in-place on `input_device`."""
@@ -60,8 +53,6 @@ class ReplayBuffer:
         self.terminal_memory[idx] = bool(done)
 
         self.mem_ctr += 1
-
-    # ------------------------------------------------------------------ #
 
     def sample_buffer(self, batch_size):
         """Return tensors ready for training (on `output_device`)."""

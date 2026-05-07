@@ -53,13 +53,11 @@ class Agent:
         os.makedirs("checkpoints", exist_ok=True)
         os.makedirs("runs", exist_ok=True)
 
-        obs, info = self.env.reset()
+        obs, _ = self.env.reset()
 
         obs = self.process_observation(obs)
 
-        self.memory = ReplayBuffer(max_size=max_buffer_size, input_shape=obs.shape, n_actions=self.env.action_space.n, input_device=self.device, output_device=self.device)
-
-        # print(torch.squeeze(obs).shape)
+        self.memory = ReplayBuffer(max_size=max_buffer_size, input_shape=obs.shape, input_device=self.device, output_device=self.device)
 
         self.world_model = WorldModel(observation_shape=obs.shape, embed_dim=1024, n_actions=self.env.action_space.n).to(self.device)
 
@@ -92,18 +90,9 @@ class Agent:
         return obs / 255.0
 
     def process_observation(self, obs):
-        # obs = torch.tensor(obs, dtype=torch.float32).permute(2,0,1)
-
         obs = cv2.resize(obs, (96, 96), interpolation=cv2.INTER_NEAREST)
-        # obs = cv2.cvtColor(obs, cv2.COLOR_RGB2GRAY) # let's do grayscale    
-        # obs = torch.from_numpy(obs).permute(2, 0, 1).to(self.device)
-
-
-        obs = torch.from_numpy(obs)
-
-        obs = obs.permute(2, 0, 1)
-        
-        return obs 
+        obs = torch.from_numpy(obs).permute(2, 0, 1)
+        return obs
 
 
     def imagine_trajectory(self, batch_size, horizon):
@@ -124,8 +113,6 @@ class Agent:
         with torch.no_grad():
             embeds = self.world_model.encode(obs).squeeze(1)  # (batch_size, embed_dim)
 
-        embed_dim = self.world_model.embed_dim
-        
         # Lists to store rollout steps
         all_states      = []
         all_actions     = []
@@ -202,53 +189,6 @@ class Agent:
         )
 
     
-
-
-    def train_q_model_on_imagination(self, horizon, batch_size, epochs=1):
-        """Train Q-model on imagined trajectories (in latent space)."""
-
-        total_loss = 0
-        total_imag_reward = 0
-
-        for epoch in range(epochs):
-
-            # Imagine parallel trajectories in latent space
-            embeddings, actions, rewards, next_embeddings, dones = self.imagine_trajectory(batch_size, horizon)
-
-            total_imag_reward += rewards.mean().item()
-
-            actions = actions.unsqueeze(1).long()
-            rewards = rewards.unsqueeze(1)
-            dones = dones.unsqueeze(1).float()
-
-            # Q-learning in latent space
-            q_values = self.q_model(embeddings)
-            q_sa     = q_values.gather(1, actions)
-
-            with torch.no_grad():
-                next_actions = torch.argmax(
-                    self.q_model(next_embeddings), dim=1, keepdim=True
-                )
-
-                next_q = self.target_q_model(next_embeddings).gather(1, next_actions)
-                targets = rewards + (1 - dones) * self.gamma * next_q
-
-            loss = F.mse_loss(q_sa, targets)
-
-            self.q_model_optimizer.zero_grad()
-            loss.backward()
-            torch.nn.utils.clip_grad_norm_(self.q_model.parameters(), max_norm=1.0)
-            self.q_model_optimizer.step()
-
-            if self.total_steps % self.target_update_interval == 0:
-                self.target_q_model.load_state_dict(self.q_model.state_dict())
-
-            total_loss += loss.item()
-
-            self.total_steps += 1
-
-        return total_loss / epochs, total_imag_reward / epochs
-
 
 
     def train_q_model_on_mixed(self, sampler, horizon, batch_size, epochs=1):
@@ -379,9 +319,7 @@ class Agent:
         best_score = float("-inf")
 
         for episode in range(episodes):
-            
-            obs, info = self.env.reset()
-
+            obs, _ = self.env.reset()
             obs = self.process_observation(obs)
 
             done = False
@@ -400,7 +338,7 @@ class Agent:
                         embed = self.world_model.encode(obs_t).squeeze(1)  # (1, embed_dim)
                         action = self.q_model(embed).argmax(dim=1).item()
 
-                next_obs, reward, term, trunc, info = self.env.step(action)
+                next_obs, reward, term, trunc, _ = self.env.step(action)
 
                 next_obs = self.process_observation(next_obs)
 
@@ -440,7 +378,7 @@ class Agent:
             wm_updates = 0
             q_updates = 0
 
-            for offline_epoch in range(offline_training_epochs):
+            for _ in range(offline_training_epochs):
                 # World model updates
                 for _ in range(current_ratio[0]):
                     combined_loss, reward_loss, done_loss, recon_loss, dynamics_loss = self.train_world_model(epochs=1, batch_size=wm_batch_size)
